@@ -10,7 +10,7 @@ export default class Scope {
   globeScope: globeScopeType
   declaration: globeScopeType
   constructor(type: scopeType = 'block', parentScope?: any) {
-    this.parentScope = parentScope ? null : parentScope
+    this.parentScope = parentScope == undefined ? null : parentScope
     this.type = type
     this.globeScope = standardMap
     this.declaration = Object.create(null)
@@ -30,7 +30,7 @@ export default class Scope {
   addScope(otherScope: object) {
     this.globeScope = { ...this.globeScope, ...otherScope }
   }
-  declareScope(value: string, name: string, type: string) {
+  declareScope(value: string, name: string, type?: string) {
     switch (type) {
       case 'var':
         return this.varDeclare(value, name, type)
@@ -59,7 +59,7 @@ export default class Scope {
     scope.declaration[name] = new createValue(value, type)
     return scope.declaration[name]
   }
-  constDeclare(value: string, name: string, type: string) {
+  constDeclare(value: string, name: any, type?: string) {
     let scope = this
     if (this.declaration[name] != undefined) {
       throw new SyntaxError(`Identifier ${name} has already been declared`)
