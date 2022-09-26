@@ -149,7 +149,6 @@ const visitors: any = {
       }
       let single = Iterator.evaluate(code.body, { scope })
       if (Single.isReturn(single)) {
-        console.log('--------')
         return single.value
       }
     }
@@ -161,9 +160,11 @@ const visitors: any = {
   },
   BlockStatement(Iterator: any) {
     //创建一个块级作用域
+    // console.log(Iterator.astCode);
+
     let scope = Iterator.createScope('block')
     // console.log(scope)
-    
+
     for (const node of Iterator.astCode.body) {
       if (node.type === 'FunctionDeclaration') {
         Iterator.evaluate(node, { scope })
@@ -188,7 +189,7 @@ const visitors: any = {
       }
       let single = Iterator.evaluate(node, { scope })
       if (Single.isSignal(single)) {
-        return single
+        return single.value
       }
     }
   },
@@ -198,6 +199,110 @@ const visitors: any = {
       value = Iterator.evaluate(Iterator.astCode.argument)
     }
     return Signal.Return(value)
+  },
+  IfStatement(Iterator: any) {
+    let test = Iterator.evaluate(Iterator.astCode.test)
+    if (test) {
+      Iterator.evaluate(Iterator.astCode.consequent)
+    }
+  },
+  BinaryExpression(Iterator: any) {
+    let left = Iterator.evaluate(Iterator.astCode.left)
+    let right = Iterator.evaluate(Iterator.astCode.right)
+    return visitors.BinaryExpressionOperatorEvaluateMap[
+      Iterator.astCode.operator
+    ](left, right)
+  },
+  BinaryExpressionOperatorEvaluateMap: {
+    '==': (a: any, b: any) => a == b,
+    '!=': (a: any, b: any) => a != b,
+    '===': (a: any, b: any) => a === b,
+    '!==': (a: any, b: any) => a !== b,
+    '<': (a: any, b: any) => a < b,
+    '<=': (a: any, b: any) => a <= b,
+    '>': (a: any, b: any) => a > b,
+    '>=': (a: any, b: any) => a >= b,
+    '<<': (a: any, b: any) => a << b,
+    '>>': (a: any, b: any) => a >> b,
+    '>>>': (a: any, b: any) => a >>> b,
+    '+': (a: any, b: any) => a + b,
+    '-': (a: any, b: any) => a - b,
+    '*': (a: any, b: any) => a * b,
+    '/': (a: any, b: any) => a / b,
+    '%': (a: any, b: any) => a % b,
+    '**': (a: any, b: any) => {
+      throw new Error('evil-eval: es5 not support operator "**"')
+    },
+    '|': (a: any, b: any) => a | b,
+    '^': (a: any, b: any) => a ^ b,
+    '&': (a: any, b: any) => a & b,
+    in: (a: any, b: any) => a in b,
+    instanceof: (a: any, b: any) => a instanceof b
+  },
+  WhileStatement(Iterator: any) {
+    let test = Iterator.astCode.test
+    while (Iterator.evaluate(test)) {
+      let signal = Iterator.evaluate(Iterator.astCode.body)
+      if (Signal.isSignal(signal)) {
+        if (Signal.isBreak(signal)) {
+          break
+        } else if (Signal.isContinue(signal)) {
+          continue
+        } else if (Signal.isReturn(signal)) {
+          return
+        }
+        return signal
+      }
+    }
+  },
+  ForStatement(Iterator: any) {
+    let code = Iterator.astCode
+    let scope = Iterator.scope
+
+    if (
+      code.init &&
+      code.init.type == 'VariableDeclaration' &&
+      code.init.kind == 'var'
+    ) {
+      scope = Iterator.createScope('block')
+    }
+    for (
+      code.init && Iterator.evaluate(code.init, { scope });
+      code.test ? Iterator.evaluate(code.test, { scope }) : true;
+      code.update && Iterator.evaluate(code.update, { scope })
+    ) {
+      // console.log(Iterator.evaluate(code.update, { scope }))
+
+      const signal = Iterator.evaluate(code.body)
+      // console.log(signal)
+
+      if (Signal.isSignal(signal)) {
+        if (Signal.isBreak(signal)) {
+          break
+        } else if (Signal.isContinue(signal)) {
+          continue
+        }
+        return signal
+      }
+    }
+  },
+  UpdateExpression(Iterator: any) {
+    const { operator, prefix } = Iterator.astCode
+    const { name } = Iterator.astCode.argument
+    let val = Iterator.scope.get(name).value
+    operator === '++'
+      ? Iterator.scope.set(name, val + 1)
+      : Iterator.scope.set(name, val - 1)
+
+    if (operator === '++' && prefix) {
+      return ++val
+    } else if (operator === '++' && !prefix) {
+      return val++
+    } else if (operator === '--' && prefix) {
+      return --val
+    } else {
+      return val--
+    }
   }
 }
 function getIdentifierOrMemberExpressionValue(node: any, nodeIterator: any) {

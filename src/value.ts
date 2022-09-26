@@ -9,7 +9,6 @@ class createValue {
     return this.value
   }
   set(value: string) {
-    console.log('-----------')
     if (this.type !== 'const') {
       this.value = value
     } else if (this.type == 'const' && typeof this.value !== 'object') {

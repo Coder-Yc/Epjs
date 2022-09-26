@@ -9,10 +9,15 @@ export function runInContext(
   return new Epjs(code, { ecmaVersion: 6 }).init({})
 }
 
-let str = `function test(a, b) {
-              var name = "hello world";
-              console.log(name)
-            }
-            test(1, 2)`
+let str = `let flag = 1
+          let a = 3
+          while(a != flag) {
+            console.log('11222')
+              flag += 1
+          }
+          for (let i = 0; i < a; i++) {
+            console.log(i)
+          }
+          `
 
 runInContext(str)

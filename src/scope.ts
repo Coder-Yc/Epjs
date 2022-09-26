@@ -26,7 +26,17 @@ export default class Scope {
     }
     throw new Error(`${name} is not define`)
   }
-  set() {}
+  set(name: any, value: any) {
+    if (this.declaration[name]) {
+      this.declaration[name].set(value)
+    } else if (this.parentScope) {
+      this.parentScope.set(name, value)
+    } else if (this.globeScope[name]) {
+      return this.globeScope.set(name, value)
+    } else {
+      throw new ReferenceError(`${name} is not defined`)
+    }
+  }
   addScope(otherScope: object) {
     this.globeScope = { ...this.globeScope, ...otherScope }
   }
