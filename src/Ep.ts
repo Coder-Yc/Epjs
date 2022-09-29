@@ -23,6 +23,7 @@ export default class Epjs {
       let value: object = item[1]
       scope.addScope({ [key]: value })
     })
+    
     this.ast = parse(this.code, JSON.parse(JSON.stringify(this.options)))
     let Iterator = new NodeIterator(this.ast, scope)
     Iterator.evaluate(this.ast)

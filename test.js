@@ -1,5 +1,6 @@
-let flag = 1
-let a = 3
-for (let i = 0; i < a; i++) {
-  console.log(i)
+function bar(b) {
+  this.a = 2
+  this.b = b
 }
+let foo = new bar(3)
+console.log(foo.b)

@@ -69,7 +69,7 @@ export default class Scope {
     scope.declaration[name] = new createValue(value, type)
     return scope.declaration[name]
   }
-  constDeclare(value: string, name: any, type?: string) {
+  constDeclare(value: unknown, name: any, type?: string) {
     let scope = this
     if (this.declaration[name] != undefined) {
       throw new SyntaxError(`Identifier ${name} has already been declared`)

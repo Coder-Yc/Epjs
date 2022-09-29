@@ -19,11 +19,13 @@ const visitors: any = {
     })
     let MemberExpression = Iterator.astCode.callee
     let fun = Iterator.evaluate(MemberExpression)
-    let applyValue
+    let applyValue: any = global
     if (MemberExpression.type === 'MemberExpression') {
       applyValue = Iterator.evaluate(MemberExpression.object)
+        ? global
+        : Iterator.evaluate(MemberExpression.object)
     }
-    // console.log('----', args)
+    // console.log('----111111', args)
     return fun.apply(applyValue, args)
   },
   MemberExpression(Iterator: any) {
@@ -137,9 +139,11 @@ const visitors: any = {
     let code = Iterator.astCode
     // console.log(code)
 
-    const fn = function () {
+    const fn = function (this: any) {
       const scope = Iterator.createScope('function')
-      //   scope.constDeclare(this, 'this')
+
+      // console.log('-------', this)
+      scope.constDeclare(this, 'this')
       scope.constDeclare(arguments, 'arguments')
 
       //不能用forEach,arguments不好处理
@@ -152,10 +156,12 @@ const visitors: any = {
         return single.value
       }
     }
+
     Object.defineProperties(fn, {
       name: { value: code.id ? code.id.name : '' },
       length: { value: code.params.length }
     })
+
     return fn
   },
   BlockStatement(Iterator: any) {
@@ -303,6 +309,18 @@ const visitors: any = {
     } else {
       return val--
     }
+  },
+  ThisExpression(Iterator: any) {
+    return Iterator.scope.get('this') == undefined
+      ? null
+      : Iterator.scope.get('this').value
+  },
+  NewExpression(Iterator: any) {
+    const fn = Iterator.evaluate(Iterator.astCode.callee)
+    const args = Iterator.astCode.arguments.map((arg: any) =>
+      Iterator.evaluate(arg)
+    )
+    return new (fn.bind(null, ...args))()
   }
 }
 function getIdentifierOrMemberExpressionValue(node: any, nodeIterator: any) {
@@ -310,7 +328,7 @@ function getIdentifierOrMemberExpressionValue(node: any, nodeIterator: any) {
     let a = nodeIterator.scope.get(node.name)
     return a
   } else if (node.type === 'MemberExpression') {
-    const obj = nodeIterator.traverse(node.object)
+    const obj = nodeIterator.evaluate(node.object)
     const name = getPropertyName(node, nodeIterator)
     return new MemberValue(obj, name)
   } else {
